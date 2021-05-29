@@ -11,18 +11,21 @@ using std::endl;
 using glm::vec3;
 using glm::mat4;
 
-SceneBasic_Uniform::SceneBasic_Uniform() : plane(10.0f, 10.0f, 200, 200)
+SceneBasic_Uniform::SceneBasic_Uniform() : time(0), plane(13.0f, 10.0f, 200, 200)
 {
-    mesh = ObjMesh::load("media/trophy.obj", true);
+    //mesh = ObjMesh::load("media/trophy.obj", true);
 }
-
 
 
 void SceneBasic_Uniform::initScene()
 {    
+    //noise
+    compile();
     glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+    glEnable(GL_DEPTH_TEST);
+
     projection = mat4(1.0f); 
-    // Array for quad
+
     GLfloat verts[] = {
         -1.0f, -1.0f, 0.0f, 1.0f, -1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 
         -1.0f, -1.0f, 0.0f, 1.0f, 1.0f, 0.0f, -1.0f, 1.0f, 0.0f
@@ -31,6 +34,7 @@ void SceneBasic_Uniform::initScene()
         0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 
         0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f
     };
+
     // Set up the buffers 
     unsigned int handle[2]; 
     glGenBuffers(2, handle);
@@ -61,7 +65,7 @@ void SceneBasic_Uniform::initScene()
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, noiseTex);
 
-    //
+    //texture
     compile();
 	glEnable(GL_DEPTH_TEST);
    
@@ -99,6 +103,17 @@ void SceneBasic_Uniform::initScene()
     prog.setUniform("Material.Kd", 0.2f, 0.55f, 0.9f); //seting the Kd uniform
     prog.setUniform("Light.Ld", 1.0f, 1.0f, 1.0f);     //setting the Ld uniform
     prog.setUniform("Light.Position", view * glm::vec4(5.0f, 5.0f, 2.0f, 0.0f)); //setting Light Position
+    prog.setUniform("Light.Intensity", vec3(1.0f, 1.0f, 1.0f));
+    angle = glm::half_pi<float>();
+
+    //Vertex animation
+    compile();
+
+    glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+    glEnable(GL_DEPTH_TEST);
+
+    prog.setUniform("Light.Intensity", vec3(1.0f, 1.0f, 1.0f));
+    angle = glm::half_pi<float>();
 }
 
 void SceneBasic_Uniform::compile()
@@ -116,36 +131,57 @@ void SceneBasic_Uniform::compile()
 
 void SceneBasic_Uniform::update( float t )
 {
+    time = t;
 }
 
 void SceneBasic_Uniform::render()
 {
+    //animatioon
+    prog.setUniform("Time", time);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+    view = glm::lookAt(vec3(10.0f * cos(angle), 4.0f, 10.0f * sin(angle)),
+            vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+    projection = glm::perspective(glm::radians(60.0f), (float)width / height, 0.3f, 100.0f);
+
+    prog.setUniform("Material.Kd", 0.2f, 0.5f, 0.9f); 
+    prog.setUniform("Material.Ks", 0.8f, 0.8f, 0.8f);
+    prog.setUniform("Material.Ka", 0.2f, 0.5f, 0.9f);
+    prog.setUniform("Material.Shininess", 100.0f);
+    model = mat4(1.0f);
+    model = glm::rotate(model, glm::radians(-10.0f), vec3(0.0f, 0.0f, 1.0f));
+    model = glm::rotate(model, glm::radians(50.0f), vec3(1.0f, 0.0f, 0.0f));
+    setMatrices(); 
+    plane.render();	  
+       
+
+
     view = mat4(1.0);
     drawScene();
     glFinish();
 
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    prog.setUniform("Material.Kd", 0.4f, 0.4f, 0.4f);
-    prog.setUniform("Material.Ks", 0.9f, 0.9f, 0.9f);
-    prog.setUniform("Material.Ka", 0.5f, 0.5f, 0.5f);
-    prog.setUniform("Material.Shininess", 180.0f);
+    //prog.setUniform("Material.Kd", 0.4f, 0.4f, 0.4f);
+    //prog.setUniform("Material.Ks", 0.9f, 0.9f, 0.9f);
+    //prog.setUniform("Material.Ka", 0.5f, 0.5f, 0.5f);
+    //prog.setUniform("Material.Shininess", 100.0f);
 
-    model = mat4(1.0f);
-    model = glm::rotate(model, glm::radians(0.0f), vec3(90.0f, 0.1f, 0.0f));
-    setMatrices();
-    mesh->render();
+    //model = mat4(1.0f);
+    //model = glm::rotate(model, glm::radians(0.0f), vec3(90.0f, 0.1f, 0.0f));
+    //setMatrices();
+    //mesh->render();
 
-    prog.setUniform("Material.Kd", 0.1f, 0.1f, 0.1f);
-    prog.setUniform("Material.Ks", 0.9f, 0.9f, 0.9f);
-    prog.setUniform("Material.Ka", 0.1f, 0.1f, 0.1f);
-    prog.setUniform("Material.Shininess", 180.0f);
+    //prog.setUniform("Material.Kd", 0.1f, 0.1f, 0.1f);
+    //prog.setUniform("Material.Ks", 0.9f, 0.9f, 0.9f);
+    //prog.setUniform("Material.Ka", 0.1f, 0.1f, 0.1f);
+    //prog.setUniform("Material.Shininess", 180.0f);
 
-    model = mat4(1.0f);
-    model = glm::translate(model, vec3(0.0f, -0.45f, 0.0f));
-    setMatrices();
-    plane.render();
+    //model = mat4(1.0f);
+    //model = glm::translate(model, vec3(0.0f, -0.45f, 0.0f));
+    //setMatrices();
+    //plane.render();
 
 }
 
@@ -160,7 +196,7 @@ void SceneBasic_Uniform::drawScene()
 
 void SceneBasic_Uniform::setMatrices()
 {
-    mat4 mv = view * model; //we create a model view matrix
+    mat4 mv = view * model; //model view matrix
     
     prog.setUniform("ModelViewMatrix", mv); //set the uniform for the model view matrix
     
@@ -174,5 +210,5 @@ void SceneBasic_Uniform::resize(int w, int h)
     glViewport(0, 0, w, h);
     width = w;
     height = h;
-    projection = glm::perspective(glm::radians(90.0f), (float)w / h, 0.2f, 100.0f);
+    projection = glm::perspective(glm::radians(90.0f), (float)w / h, 0.3f, 100.0f);
 }

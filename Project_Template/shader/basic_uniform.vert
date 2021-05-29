@@ -10,31 +10,40 @@ out vec3 LightIntensity;
 out vec3 Colour;
 out vec2 TexCoord;
 
+//animation
+out vec4 Position;
+out vec3 Normal;
+uniform float Time;
+uniform float Freq = 2.5;
+uniform float Velocity = 2.5;
+uniform float Amp = 0.6;
+
+
 layout(binding=0) uniform sampler2D Tex1;
  
- //light information struct
+ //light
 uniform struct LightInfo 
 {
-  vec4 Position; // Light position in eye coords.
-  vec3 Ld;       // Diffuse light intensity
+  vec4 Position; 
+  vec3 Ld;     
   vec3 La;
   vec3 L;
 } lights[3];
 
-//material information struct
+//material
 uniform struct MaterialInfo 
 {
-   vec3 Ka; // Ambient reflectivity
-   vec3 Kd; // Diffuse reflectivity
-   vec3 Ks; // Specular reflectivity
-   float Shininess; // Specular shininess factor
+   vec3 Ka;
+   vec3 Kd;
+   vec3 Ks;
+   float Shininess;
 } Material;
 
 //uniforms for matrices required in the shader
 uniform vec4 view;
-uniform mat4 ModelViewMatrix;   //model view matrix
-uniform mat3 NormalMatrix;		//normal matrix
-uniform mat4 MVP;				//model view projection matrix
+uniform mat4 ModelViewMatrix; 
+uniform mat3 NormalMatrix;	
+uniform mat4 MVP;		    //model view projection matrix
  
 void getCamSpaceValues ( out vec3 norm, out vec3 position )
 {
@@ -64,22 +73,35 @@ vec3 phongModel( int light, vec3 position, vec3 n )
     return ambient + lights[light].L * (diffuse + spec);
 }
 
+
+
 void main() 
 { 
+   //transfrom normal from model coordinates to view coordinates
+   //vec3 n = normalize( NormalMatrix * VertexNormal);
+
+   //transform vertex position from model coordinates to view coordinates
+   //vec4 pos = ModelViewMatrix * vec4(VertexPosition,1.0);
+
+   vec4 pos = vec4(VertexPosition,1.0);
+
+   //animation
+   float u = Freq * pos.x - Velocity * Time;
+   pos.y = Amp * sin(u);
+
+   vec3 n = vec3(0.0);
+   n.xy = normalize(vec2(cos(u), 1.0));
+
+   Position = ModelViewMatrix * pos;
+   Normal = NormalMatrix * n;
    TexCoord = VertexTexCoord;
 
-  //transfrom normal from model coordinates to view coordinates
-  vec3 n = normalize( NormalMatrix * VertexNormal);
+   vec3 camNorm, camPosition;
+   getCamSpaceValues (camNorm, camPosition);
 
-  //transform vertex position from model coordinates to view coordinates
-  vec4 pos = ModelViewMatrix * vec4(VertexPosition,1.0);
-
-  vec3 camNorm, camPosition;
-  getCamSpaceValues (camNorm, camPosition);
-
-  Colour = vec3(0.1);
-  for( int i = 0; i < 3; i++ )
+   Colour = vec3(0.1);
+   for( int i = 0; i < 3; i++ )
        Colour += phongModel( i, camPosition, camNorm );
 
-  gl_Position = MVP * vec4(VertexPosition,1.0); 
+   gl_Position = MVP * vec4(VertexPosition,1.0); 
 } 
