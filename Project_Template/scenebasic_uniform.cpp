@@ -2,6 +2,7 @@
 
 #include "scenebasic_uniform.h"
 #include "helper/texture.h"
+#include "helper/noisetex.h"
 #include <iostream>
 using std::cerr;
 using std::endl;
@@ -16,12 +17,55 @@ SceneBasic_Uniform::SceneBasic_Uniform() : plane(10.0f, 10.0f, 200, 200)
 }
 
 
+
 void SceneBasic_Uniform::initScene()
-{
+{    
+    glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+    projection = mat4(1.0f); 
+    // Array for quad
+    GLfloat verts[] = {
+        -1.0f, -1.0f, 0.0f, 1.0f, -1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 
+        -1.0f, -1.0f, 0.0f, 1.0f, 1.0f, 0.0f, -1.0f, 1.0f, 0.0f
+    };
+    GLfloat tc[] = {
+        0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 
+        0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f
+    };
+    // Set up the buffers 
+    unsigned int handle[2]; 
+    glGenBuffers(2, handle);
+
+    glBindBuffer(GL_ARRAY_BUFFER, handle[0]);
+    glBufferData(GL_ARRAY_BUFFER, 6 * 3 * sizeof(float), verts, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ARRAY_BUFFER, handle[1]);
+    glBufferData(GL_ARRAY_BUFFER, 6 * 2 * sizeof(float), tc, GL_STATIC_DRAW);
+
+    // Set up the vertex array object 
+    glGenVertexArrays(1, &quad); 
+    glBindVertexArray(quad);
+
+    glBindBuffer(GL_ARRAY_BUFFER, handle[0]);
+    glVertexAttribPointer((GLuint)0, 3, GL_FLOAT, GL_FALSE, 0, ((GLubyte*)NULL + (0))); 
+    glEnableVertexAttribArray(0); // Vertex position
+
+    glBindBuffer(GL_ARRAY_BUFFER, handle[1]);
+    glVertexAttribPointer((GLuint)2, 2, GL_FLOAT, GL_FALSE, 0, ((GLubyte*)NULL + (0))); 
+    glEnableVertexAttribArray(2); // Texture coordinates
+
+    glBindVertexArray(0); 
+
+    prog.setUniform("NoiseTex", 0);
+
+    GLuint noiseTex = NoiseTex::generate2DTex(6.0f); 
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, noiseTex);
+
+    //
     compile();
 	glEnable(GL_DEPTH_TEST);
    
-    view = glm::lookAt(vec3(1.0f, 1.0f, 1.5f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+    view = glm::lookAt(vec3(3.0f, 1.0f, 1.5f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
     projection = mat4(1.0f);
 
     float x, z;
@@ -76,6 +120,11 @@ void SceneBasic_Uniform::update( float t )
 
 void SceneBasic_Uniform::render()
 {
+    view = mat4(1.0);
+    drawScene();
+    glFinish();
+
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     prog.setUniform("Material.Kd", 0.4f, 0.4f, 0.4f);
@@ -84,7 +133,7 @@ void SceneBasic_Uniform::render()
     prog.setUniform("Material.Shininess", 180.0f);
 
     model = mat4(1.0f);
-    model = glm::rotate(model, glm::radians(90.0f), vec3(90.0f, 1.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(0.0f), vec3(90.0f, 0.1f, 0.0f));
     setMatrices();
     mesh->render();
 
@@ -97,6 +146,16 @@ void SceneBasic_Uniform::render()
     model = glm::translate(model, vec3(0.0f, -0.45f, 0.0f));
     setMatrices();
     plane.render();
+
+}
+
+void SceneBasic_Uniform::drawScene()
+{
+    model = mat4(1.0f);
+    setMatrices();
+
+    glBindVertexArray(quad);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
 void SceneBasic_Uniform::setMatrices()
@@ -115,5 +174,5 @@ void SceneBasic_Uniform::resize(int w, int h)
     glViewport(0, 0, w, h);
     width = w;
     height = h;
-    projection = glm::perspective(glm::radians(90.0f), (float)w / h, 0.3f, 100.0f);
+    projection = glm::perspective(glm::radians(90.0f), (float)w / h, 0.2f, 100.0f);
 }

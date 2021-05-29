@@ -15,6 +15,10 @@ class SceneBasic_Uniform : public Scene
 private:
     GLSLProgram prog;
 
+    GLuint quad;
+    glm::vec3 lightPos;
+    float angle;
+
     //plane surface
     Plane plane; 
     //mesh
@@ -23,6 +27,8 @@ private:
     void setMatrices();
 
     void compile();
+
+    void drawScene();
 
 public:
     SceneBasic_Uniform();
